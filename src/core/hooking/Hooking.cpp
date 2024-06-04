@@ -7,8 +7,33 @@
 #include "game/pointers/Pointers.hpp"
 #include "core/memory/ModuleMgr.hpp"
 
+
+class sysMemAllocator
+{
+public:
+	virtual void SetQuitOnFail(bool)                                                 = 0;
+	virtual void* Allocate(std::size_t size, std::size_t align, int subAllocator)    = 0;
+	virtual void* TryAllocate(std::size_t size, std::size_t align, int subAllocator) = 0;
+	virtual void Free(void* pointer)                                                 = 0;
+	virtual void TryFree(void* pointer)                                              = 0;
+	virtual void Resize(void* pointer, std::size_t size)                             = 0;
+	virtual sysMemAllocator* GetAllocator(int allocator) const                       = 0;
+	virtual sysMemAllocator* GetAllocator(int allocator)                             = 0;
+	virtual sysMemAllocator* GetPointerOwner(void* pointer)                          = 0;
+	virtual std::size_t GetSize(void* pointer) const                                 = 0;
+	virtual std::size_t GetMemoryUsed(int memoryBucket)                              = 0;
+	virtual std::size_t GetMemoryAvailable()                                         = 0;
+};
+
 namespace YimMenu
 {
+	bool AllocMemReliable(void* a1, int a2)
+	{
+		sysMemAllocator* a = *(sysMemAllocator**)((__int64)a1 + 0x18);
+		LOG(INFO) << std::hex << std::uppercase << (a->GetMemoryAvailable()) << " " << a2;
+		return BaseHook::Get<AllocMemReliable, DetourHook<decltype(&AllocMemReliable)>>()->Original()(a1, a2);
+	}
+
 	Hooking::Hooking()
 	{
 		BaseHook::Add<Hooks::Window::WndProc>(new DetourHook("WndProc", Pointers.WndProc, Hooks::Window::WndProc));
@@ -29,6 +54,7 @@ namespace YimMenu
 		}
 
 		BaseHook::Add<Hooks::Script::RunScriptThreads>(new DetourHook("RunScriptThreads", Pointers.RunScriptThreads, Hooks::Script::RunScriptThreads));
+		BaseHook::Add<AllocMemReliable>(new DetourHook("RunScriptThreads", (PVOID)((__int64)GetModuleHandleA(0)+0x2F2AFA0), AllocMemReliable));
 	}
 
 	Hooking::~Hooking()
