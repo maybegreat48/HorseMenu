@@ -10,15 +10,10 @@ namespace YimMenu::Features
 
 		virtual void OnCall() override
 		{
-			LAW::CLEAR_PLAYER_PAST_CRIMES(Self::Id); // does nothing
-			LAW::CLEAR_BOUNTY(Self::Id); 
-			LAW::SET_BOUNTY(Self::Id, 0); // does nothing
-			PLAYER::CLEAR_PLAYER_WANTED_LEVEL(Self::Id); // does nothing
-			LAW::CLEAR_WANTED_SCORE(Self::Id); // also does nothing
-
-			LOG(INFO) << "Bounty: " << LAW::GET_BOUNTY(Self::Id);
+			char guid[0x20];
+			BOUNTY::_BOUNTY_REQUEST_PAY_OFF_BOUNTY(guid); // Pays bounty from your wallet like visiting the post clerk
 		}
 	};
 
-	static ClearCrimes _ClearCrimes{"clearcrimes", "Clear Crimes", "Clears all crimes and removes all active bounties"};
+	static ClearCrimes _ClearCrimes{"clearcrimes", "Pay Bounties", "Pays all active bounties (Like a mobile post clerk)"};
 }

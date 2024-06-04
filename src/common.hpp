@@ -1,5 +1,4 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
 
 #include <AsyncLogger/Logger.hpp>
 #include <MinHook.h>
@@ -16,12 +15,12 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <stack>
 #include <string_view>
 #include <thread>
 #include <vector>
-#include <stack>
 
-#include <nlohmann/json.hpp>
 
 using namespace al;
 #include "core/logger/LogHelper.hpp"
@@ -31,6 +30,7 @@ using namespace al;
 namespace YimMenu
 {
 	using namespace std::chrono_literals;
+	using namespace std::string_literals;
 
 	extern std::atomic<bool> g_Running;
 	extern HINSTANCE g_DllInstance;

@@ -1,24 +1,32 @@
 #include "common.hpp"
+#include "core/byte_patch_manager/byte_patch_manager.hpp"
+#include "core/commands/HotkeySystem.hpp"
 #include "core/filemgr/FileMgr.hpp"
+#include "core/frontend/Notifications.hpp"
 #include "core/hooking/Hooking.hpp"
 #include "core/memory/ModuleMgr.hpp"
 #include "core/renderer/Renderer.hpp"
+#include "core/settings/Settings.hpp"
+#include "game/backend/FiberPool.hpp"
+#include "game/backend/ScriptMgr.hpp"
+#include "game/bigfeatures/CustomTeleport.hpp"
+#include "game/features/Features.hpp"
 #include "game/frontend/GUI.hpp"
 #include "game/pointers/Pointers.hpp"
-#include "game/backend/ScriptMgr.hpp"
-#include "game/backend/FiberPool.hpp"
-#include "game/features/Features.hpp"
-#include "core/commands/HotkeySystem.hpp"
+
 
 namespace YimMenu
 {
 	DWORD Main(void*)
 	{
-		const auto documents = std::filesystem::path(std::getenv("USERPROFILE")) / "Documents";
-		FileMgr::Init(documents / "HellBase");
+		const auto documents = std::filesystem::path(std::getenv("appdata")) / "HorseMenu";
+		FileMgr::Init(documents); // TODO
 
-		// TODO: change console name
-		LogHelper::Init("henlo", FileMgr::GetProjectFile("./cout.log"));
+		LogHelper::Init("HorseMenu", FileMgr::GetProjectFile("./cout.log"));
+
+		g_HotkeySystem.RegisterCommands();
+		CustomTeleport::FetchSavedLocations();
+		Settings::Initialize(FileMgr::GetProjectFile("./settings.json"));
 
 		if (!ModuleMgr.LoadModules())
 			goto unload;
@@ -26,6 +34,8 @@ namespace YimMenu
 			goto unload;
 		if (!Renderer::Init())
 			goto unload;
+
+		Byte_Patch_Manager::Init();
 
 		Hooking::Init();
 
@@ -39,12 +49,20 @@ namespace YimMenu
 
 		ScriptMgr::AddScript(std::make_unique<Script>(&FeatureLoop));
 		ScriptMgr::AddScript(std::make_unique<Script>(&BlockControlsForUI));
+		ScriptMgr::AddScript(std::make_unique<Script>(&ContextMenuTick));
 
-		g_HotkeySystem.RegisterCommands();
+		Notifications::Show("HorseMenu", "Loaded succesfully", NotificationType::Success);
 
 		while (g_Running)
 		{
-			std::this_thread::sleep_for(100ms);
+			// Needed incase UI is malfunctioning or for emergencies
+			if (GetAsyncKeyState(VK_DELETE) & 0x8000 && !*Pointers.IsSessionStarted)
+			{
+				g_Running = false;
+			}
+
+			std::this_thread::sleep_for(3000ms);
+			Settings::Save(); // TODO: move this somewhere else
 		}
 
 		LOG(INFO) << "Unloading";
@@ -58,6 +76,7 @@ namespace YimMenu
 	unload:
 		Hooking::Destroy();
 		Renderer::Destroy();
+		Pointers.Restore();
 
 		LogHelper::Destroy();
 
